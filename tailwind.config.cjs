@@ -1,0 +1,1 @@
+module.exports = { content: ['./App.tsx', './src/**/*.{js,tsx}'], presets: [require('nativewind/preset')], theme: { extend: { colors: { zenith: { bg: '#F5F5F7', dark: '#1C1C1E', blue: '#4A90E2', orange: '#D0021B' } } } }, plugins: [] }; 
