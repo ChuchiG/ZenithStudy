@@ -11,6 +11,7 @@ export default function ReviewScreen() {
     const [activeTab, setActiveTab] = useState<'tarjetas' | 'calendario'>('tarjetas');
     const [calendarView, setCalendarView] = useState<'day' | 'week' | 'month'>('month');
     const [selectedCard, setSelectedCard] = useState<StudyCard | null>(null);
+    const [selectedDate, setSelectedDate] = useState(new Date());
     const { cards, fetchCards, advanceCard, deleteCard } = useCards();
     const [player, setPlayer] = useState<any>(null);
 
@@ -32,52 +33,58 @@ export default function ReviewScreen() {
         }
     }
 
-    const renderCards = () => (
-        <FlatList
-            data={cards}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={({ item }) => (
-                <View style={{ backgroundColor: "white", padding: 24, borderRadius: 24, marginBottom: 16, borderWidth: 1, borderColor: "#F3F4F6", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 }}>
-                    <TouchableOpacity onPress={() => setSelectedCard(item)}>
-                        <View style={{ marginBottom: 16 }}>
-                            <Text style={{ color: "#9CA3AF", textTransform: "uppercase", fontSize: 10, fontWeight: "bold", marginBottom: 4 }}>Concepto</Text>
-                            <Text style={{ fontSize: 20, fontWeight: "bold", color: "#111827" }}>{item.title}</Text>
-                            <Text style={{ fontSize: 12, color: "#6B7280", marginTop: 4 }}>
-                                Siguiente repaso: {format(new Date(item.nextReviewDate), "d 'de' MMMM", { locale: es })}
-                            </Text>
+    const renderCards = () => {
+        const sortedCards = [...cards]
+            .filter(c => c.status === 'active')
+            .sort((a, b) => new Date(a.nextReviewDate).getTime() - new Date(b.nextReviewDate).getTime());
+
+        return (
+            <FlatList
+                data={sortedCards}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={({ item }) => (
+                    <View style={{ backgroundColor: "white", padding: 24, borderRadius: 24, marginBottom: 16, borderWidth: 1, borderColor: "#F3F4F6", shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 }}>
+                        <TouchableOpacity onPress={() => setSelectedCard(item)}>
+                            <View style={{ marginBottom: 16 }}>
+                                <Text style={{ color: "#9CA3AF", textTransform: "uppercase", fontSize: 10, fontWeight: "bold", marginBottom: 4 }}>Concepto</Text>
+                                <Text style={{ fontSize: 20, fontWeight: "bold", color: "#111827" }}>{item.title}</Text>
+                                <Text style={{ fontSize: 12, color: "#6B7280", marginTop: 4 }}>
+                                    Siguiente repaso: {format(new Date(item.nextReviewDate), "d 'de' MMMM", { locale: es })}
+                                </Text>
+                            </View>
+                        </TouchableOpacity>
+                        <View style={{ flexDirection: "row", gap: 12 }}>
+                            <TouchableOpacity
+                                onPress={() => advanceCard(item.id, item.stage)}
+                                style={{ flex: 1, backgroundColor: "#111827", paddingVertical: 14, borderRadius: 12, alignItems: "center" }}
+                            >
+                                <Text style={{ color: "white", fontWeight: "bold" }}>¡Repasar!</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={() => {
+                                    Alert.alert("Eliminar", "¿Estás seguro de eliminar esta tarjeta?", [
+                                        { text: "Cancelar", style: "cancel" },
+                                        { text: "Eliminar", style: "destructive", onPress: () => deleteCard(item.id, item.audioUri) }
+                                    ]);
+                                }}
+                                style={{ backgroundColor: "#F9FAFB", padding: 14, borderRadius: 12, borderWidth: 1, borderColor: "#F3F4F6" }}
+                            >
+                                <Ionicons name="trash-outline" size={20} color="#EF4444" />
+                            </TouchableOpacity>
                         </View>
-                    </TouchableOpacity>
-                    <View style={{ flexDirection: "row", gap: 12 }}>
-                        <TouchableOpacity
-                            onPress={() => advanceCard(item.id, item.stage)}
-                            style={{ flex: 1, backgroundColor: "#111827", paddingVertical: 14, borderRadius: 12, alignItems: "center" }}
-                        >
-                            <Text style={{ color: "white", fontWeight: "bold" }}>¡Repasar!</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            onPress={() => {
-                                Alert.alert("Eliminar", "¿Estás seguro de eliminar esta tarjeta?", [
-                                    { text: "Cancelar", style: "cancel" },
-                                    { text: "Eliminar", style: "destructive", onPress: () => deleteCard(item.id, item.audioUri) }
-                                ]);
-                            }}
-                            style={{ backgroundColor: "#F9FAFB", padding: 14, borderRadius: 12, borderWidth: 1, borderColor: "#F3F4F6" }}
-                        >
-                            <Ionicons name="trash-outline" size={20} color="#EF4444" />
-                        </TouchableOpacity>
                     </View>
-                </View>
-            )}
-            ListEmptyComponent={
-                <View style={{ alignItems: "center", justifyContent: "center", marginTop: 80 }}>
-                    <Ionicons name="sparkles-outline" size={64} color="#E5E7EB" />
-                    <Text style={{ color: "#9CA3AF", marginTop: 16, textAlign: "center", fontSize: 16 }}>
-                        No tienes tarjetas activas.{"\n"}¡Añade algo nuevo en Estudio!
-                    </Text>
-                </View>
-            }
-        />
-    );
+                )}
+                ListEmptyComponent={
+                    <View style={{ alignItems: "center", justifyContent: "center", marginTop: 80 }}>
+                        <Ionicons name="sparkles-outline" size={64} color="#E5E7EB" />
+                        <Text style={{ color: "#9CA3AF", marginTop: 16, textAlign: "center", fontSize: 16 }}>
+                            No tienes tarjetas activas.{"\n"}¡Añade algo nuevo en Estudio!
+                        </Text>
+                    </View>
+                }
+            />
+        );
+    };
 
     const renderCalendar = () => {
         const now = new Date();
@@ -114,63 +121,84 @@ export default function ReviewScreen() {
                     ))}
                 </View>
 
-                <View style={{ backgroundColor: 'white', padding: 24, borderRadius: 24, borderWidth: 1, borderColor: '#F3F4F6', shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.03, shadowRadius: 10 }}>
-                    <Text style={{ fontSize: 20, fontWeight: '800', marginBottom: 20, color: '#111827', textTransform: 'capitalize' }}>
-                        {format(now, 'MMMM yyyy', { locale: es })}
-                    </Text>
-                    <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-                        {days.map((day) => {
-                            const reviewsToday = cards.filter(c => isSameDay(new Date(c.nextReviewDate), day) && c.status === 'active');
-                            const isToday = isSameDay(day, now);
-                            return (
-                                <View key={day.toString()} style={{ width: '14.28%', alignItems: 'center', marginBottom: 20 }}>
-                                    <View style={{
-                                        width: 32,
-                                        height: 32,
-                                        borderRadius: 16,
-                                        backgroundColor: isToday ? '#4A90E2' : 'transparent',
-                                        alignItems: 'center',
-                                        justifyContent: 'center'
-                                    }}>
-                                        <Text style={{
-                                            fontSize: 14,
-                                            color: isToday ? 'white' : '#374151',
-                                            fontWeight: isToday ? 'bold' : '500'
-                                        }}>
-                                            {format(day, 'd')}
-                                        </Text>
-                                    </View>
-                                    {reviewsToday.length > 0 && (
-                                        <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#F97316', marginTop: 4 }} />
-                                    )}
-                                </View>
-                            );
-                        })}
+                {calendarView === 'day' ? (
+                    <View style={{ backgroundColor: 'white', padding: 32, borderRadius: 24, borderWidth: 1, borderColor: '#F3F4F6', alignItems: 'center', shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.03, shadowRadius: 10 }}>
+                        <Text style={{ fontSize: 14, color: '#4A90E2', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: 8 }}>{format(selectedDate, 'eeee', { locale: es })}</Text>
+                        <Text style={{ fontSize: 32, fontWeight: '800', color: '#111827' }}>{format(selectedDate, "d 'de' MMMM", { locale: es })}</Text>
                     </View>
-                </View>
+                ) : (
+                    <View style={{ backgroundColor: 'white', padding: 24, borderRadius: 24, borderWidth: 1, borderColor: '#F3F4F6', shadowColor: "#000", shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.03, shadowRadius: 10 }}>
+                        <Text style={{ fontSize: 20, fontWeight: '800', marginBottom: 20, color: '#111827', textTransform: 'capitalize' }}>
+                            {format(now, 'MMMM yyyy', { locale: es })}
+                        </Text>
+                        <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                            {days.map((day) => {
+                                const reviewsToday = cards.filter(c => isSameDay(new Date(c.nextReviewDate), day) && c.status === 'active');
+                                const isSelected = isSameDay(day, selectedDate);
+                                return (
+                                    <TouchableOpacity
+                                        key={day.toString()}
+                                        onPress={() => setSelectedDate(day)}
+                                        style={{ width: '14.28%', alignItems: 'center', marginBottom: 20 }}
+                                    >
+                                        <View style={{
+                                            width: 32,
+                                            height: 32,
+                                            borderRadius: 16,
+                                            backgroundColor: isSelected ? '#4A90E2' : 'transparent',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                        }}>
+                                            <Text style={{
+                                                fontSize: 14,
+                                                color: isSelected ? 'white' : '#374151',
+                                                fontWeight: isSelected ? 'bold' : '500'
+                                            }}>
+                                                {format(day, 'd')}
+                                            </Text>
+                                        </View>
+                                        {reviewsToday.length > 0 && !isSelected && (
+                                            <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#F97316', marginTop: 4 }} />
+                                        )}
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+                    </View>
+                )}
 
                 <View style={{ marginTop: 32, marginBottom: 40 }}>
-                    <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#111827', marginBottom: 16 }}>Próximos Repasos</Text>
+                    <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#111827', marginBottom: 16 }}>
+                        Repasos del {format(selectedDate, "d 'de' MMMM", { locale: es })}
+                    </Text>
                     {cards
-                        .filter(c => c.status === 'active')
+                        .filter(c => c.status === 'active' && isSameDay(new Date(c.nextReviewDate), selectedDate))
                         .sort((a, b) => new Date(a.nextReviewDate).getTime() - new Date(b.nextReviewDate).getTime())
-                        .slice(0, 5)
-                        .map(card => (
-                            <TouchableOpacity
-                                key={card.id}
-                                onPress={() => setSelectedCard(card)}
-                                style={{ backgroundColor: 'white', padding: 20, borderRadius: 20, marginBottom: 12, borderWidth: 1, borderColor: '#F3F4F6', flexDirection: 'row', alignItems: 'center' }}
-                            >
-                                <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: '#F5F3FF', alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
-                                    <Ionicons name="calendar" size={20} color="#8B5CF6" />
-                                </View>
-                                <View style={{ flex: 1 }}>
-                                    <Text style={{ fontWeight: 'bold', color: '#111827' }}>{card.title}</Text>
-                                    <Text style={{ fontSize: 12, color: '#9CA3AF' }}>{format(new Date(card.nextReviewDate), "eeee d 'de' MMMM", { locale: es })}</Text>
-                                </View>
-                                <Ionicons name="chevron-forward" size={18} color="#D1D5DB" />
-                            </TouchableOpacity>
-                        ))}
+                        .length > 0 ? (
+                        cards
+                            .filter(c => c.status === 'active' && isSameDay(new Date(c.nextReviewDate), selectedDate))
+                            .sort((a, b) => new Date(a.nextReviewDate).getTime() - new Date(b.nextReviewDate).getTime())
+                            .map(card => (
+                                <TouchableOpacity
+                                    key={card.id}
+                                    onPress={() => setSelectedCard(card)}
+                                    style={{ backgroundColor: 'white', padding: 20, borderRadius: 20, marginBottom: 12, borderWidth: 1, borderColor: '#F3F4F6', flexDirection: 'row', alignItems: 'center' }}
+                                >
+                                    <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: '#F5F3FF', alignItems: 'center', justifyContent: 'center', marginRight: 16 }}>
+                                        <Ionicons name="calendar" size={20} color="#8B5CF6" />
+                                    </View>
+                                    <View style={{ flex: 1 }}>
+                                        <Text style={{ fontWeight: 'bold', color: '#111827' }}>{card.title}</Text>
+                                        <Text style={{ fontSize: 12, color: '#9CA3AF' }}>{format(new Date(card.nextReviewDate), "HH:mm", { locale: es })}</Text>
+                                    </View>
+                                    <Ionicons name="chevron-forward" size={18} color="#D1D5DB" />
+                                </TouchableOpacity>
+                            ))
+                    ) : (
+                        <View style={{ alignItems: 'center', padding: 20 }}>
+                            <Text style={{ color: '#9CA3AF' }}>No hay repasos programados para este día.</Text>
+                        </View>
+                    )}
                 </View>
             </ScrollView>
         );
@@ -244,8 +272,10 @@ export default function ReviewScreen() {
 
                                 <TouchableOpacity
                                     onPress={() => {
-                                        advanceCard(selectedCard.id, selectedCard.stage);
-                                        setSelectedCard(null);
+                                        if (selectedCard) {
+                                            advanceCard(selectedCard.id, selectedCard.stage);
+                                            setSelectedCard(null);
+                                        }
                                     }}
                                     style={{ backgroundColor: '#111827', paddingVertical: 18, borderRadius: 16, alignItems: 'center' }}
                                 >

@@ -1,12 +1,21 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { useMindsetStore } from "../store/mindsetStore";
+import { useSettingsStore } from "../store/settingsStore";
 
 export default function Timer() {
-    const [timeLeft, setTimeLeft] = useState(50 * 60);
+    const focusTime = useSettingsStore((state) => state.focusTime);
+    const [timeLeft, setTimeLeft] = useState(focusTime * 60);
     const [isActive, setIsActive] = useState(false);
     const [isFocus, setIsFocus] = useState(true);
     const addEffort = useMindsetStore((state) => state.addEffort);
+
+    // Sync timeLeft ONLY when focusTime specifically changes and the timer is not running
+    useEffect(() => {
+        if (!isActive) {
+            setTimeLeft(focusTime * 60);
+        }
+    }, [focusTime]);
 
     useEffect(() => {
         let interval: any = null;
@@ -16,23 +25,23 @@ export default function Timer() {
             }, 1000);
         } else if (timeLeft === 0) {
             if (isFocus) {
-                addEffort(50);
+                addEffort(focusTime);
                 setTimeLeft(10 * 60);
                 setIsFocus(false);
             } else {
-                setTimeLeft(50 * 60);
+                setTimeLeft(focusTime * 60);
                 setIsFocus(true);
             }
             setIsActive(false);
             clearInterval(interval);
         }
         return () => clearInterval(interval);
-    }, [isActive, timeLeft, isFocus, addEffort]);
+    }, [isActive, timeLeft, isFocus, addEffort, focusTime]);
 
     const toggleTimer = () => setIsActive(!isActive);
     const resetTimer = () => {
         setIsActive(false);
-        setTimeLeft(isFocus ? 50 * 60 : 10 * 60);
+        setTimeLeft(isFocus ? focusTime * 60 : 10 * 60);
     };
 
     const formatTime = (seconds: number) => {
@@ -60,7 +69,12 @@ export default function Timer() {
                     }}
                 >
                     <Text style={{ fontSize: 18, fontWeight: "bold", color: isActive ? "#4B5563" : "white" }}>
-                        {isActive ? "Pausar" : "Comenzar"}
+                        {isActive
+                            ? "Pausar"
+                            : (isFocus && timeLeft < focusTime * 60) || (!isFocus && timeLeft < 10 * 60)
+                                ? "Reanudar"
+                                : "Comenzar"
+                        }
                     </Text>
                 </TouchableOpacity>
                 <TouchableOpacity

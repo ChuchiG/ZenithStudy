@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { db } from "../database/db";
 import * as FileSystem from 'expo-file-system';
+import { copyAsync, deleteAsync } from 'expo-file-system/legacy';
 
 export interface StudyCard {
     id: number;
@@ -47,7 +48,7 @@ export function useCards() {
             }
 
             finalAudioUri = `${docDir}${fileName}`;
-            await FileSystem.copyAsync({
+            await copyAsync({
                 from: tempAudioUri,
                 to: finalAudioUri
             });
@@ -76,7 +77,7 @@ export function useCards() {
     const deleteCard = async (id: number, audioUri: string | null) => {
         if (audioUri) {
             try {
-                await FileSystem.deleteAsync(audioUri, { idempotent: true });
+                await deleteAsync(audioUri, { idempotent: true });
             } catch (e) {
                 console.error("Error deleting audio file", e);
             }

@@ -5,6 +5,7 @@ export default function TabLayout() {
     return (
         <Tabs
             screenOptions={{
+                headerShown: false,
                 tabBarActiveTintColor: '#4A90E2',
                 tabBarStyle: { backgroundColor: '#F5F5F7' },
                 headerStyle: { backgroundColor: '#F5F5F7' },
@@ -37,6 +38,13 @@ export default function TabLayout() {
                 options={{
                     title: 'Progreso',
                     tabBarIcon: ({ color }) => <Ionicons name="stats-chart-outline" size={24} color={color} />,
+                }}
+            />
+            <Tabs.Screen
+                name="configuracion"
+                options={{
+                    title: 'Configuración',
+                    tabBarIcon: ({ color }) => <Ionicons name="settings-outline" size={24} color={color} />,
                 }}
             />
         </Tabs>
